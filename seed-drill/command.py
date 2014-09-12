@@ -181,7 +181,7 @@ def main():
     w.task_update(task)
     w.task_annotate(task, "Logged %s hours in Harvest" % response['hours'])
     # Prompt to complete task if it is pending.
-    if (task['status'] is 'pending' and query_yes_no(
+    if (task['status'] == 'pending' and query_yes_no(
             'Complete task "%s"?' % task['description'])):
         w.task_done(uuid=task['uuid'])
         print('Task %d is complete!' % task['id'])
