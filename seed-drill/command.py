@@ -6,10 +6,13 @@ from base64 import b64encode
 import requests
 import json
 import sys
+import yaml
 from sys import argv
 
 w = TaskWarrior(marshal=True)
 home = expanduser("~")
+credentials_data = open(home + '/.harvest.credentials.yml')
+credentials = yaml.load(credentials_data)
 
 
 def query_yes_no(question, default="yes"):
@@ -79,7 +82,7 @@ def get_harvest_project(task):
 
 def get_harvest_task_type(task, harvest_project_id):
     " Return a list of valid task types. """
-    valid_task_types = get_task_type_map(harvest_project_id)
+    valid_task_types, harvest_subdomain = get_task_type_map(harvest_project_id)
     # Reformat
     valid_task_type_dict = {}
     for task_type in valid_task_types:
@@ -91,7 +94,7 @@ def get_harvest_task_type(task, harvest_project_id):
     print('Enter the ID of the task type: ')
     user_task_type = int(raw_input())
     if (user_task_type in valid_task_type_dict):
-        return int(user_task_type), valid_task_type_dict[user_task_type]
+        return int(user_task_type), valid_task_type_dict[user_task_type], harvest_subdomain
     else:
         print('Invalid task type ID')
         exit(1)
@@ -99,18 +102,20 @@ def get_harvest_task_type(task, harvest_project_id):
 
 def get_project_map():
     """ Return a map of Taskwarrior projects to Harvest projects. """
-    project_data = open(home + '/.harvest.projects.json')
-    return json.load(project_data)
+    project_data = open(home + '/.harvest.projects.yml')
+    return yaml.load(project_data)
 
 
 def get_task_type_map(project_id):
     """ Load the task type map. """
-    json_data = open(home + '/.harvest.tasks.json')
-    task_type_map = json.load(json_data)
-    projects = task_type_map['projects']
-    for project in projects:
-        if int(project_id) == int(project['id']):
-            return project['tasks']
+    task_type_map = list()
+
+    for subdomain, account in credentials.iteritems():
+        json_data = open(home + '/.harvest.%s.json' % subdomain)
+        task_type_map = json.load(json_data)
+        for project in task_type_map['projects']:
+            if int(project_id) == int(project['id']):
+                return project['tasks'], subdomain
 
     print('Invalid task type')
     exit(1)
@@ -136,7 +141,7 @@ def main():
     actual_time = (int(task['actual']) / 60) / 60
     harvest_comment = get_harvest_comment(task)
     harvest_project_id, harvest_project_name = get_harvest_project(task)
-    harvest_task_type_id, harvest_task_type_name = get_harvest_task_type(
+    harvest_task_type_id, harvest_task_type_name, harvest_subdomain = get_harvest_task_type(
         task, harvest_project_id)
 
     print('Summary')
@@ -157,22 +162,20 @@ def main():
         'spent_at': task['modified'].strftime("%a, %d %b %Y")
     })
 
-    credentials_data = open(home + '/.harvest.credentials.json')
-    credentials = json.load(credentials_data)
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': 'Basic ' + b64encode(
-            '%s:%s' % (credentials['email'],
-                        credentials['password']))
+            '%s:%s' % (credentials[harvest_subdomain]['email'],
+                        credentials[harvest_subdomain]['password']))
     }
     print('Posting to Harvest...')
     r = requests.post(
-        "https://%s.harvestapp.com/daily/add" % credentials['subdomain'],
+        "https://%s.harvestapp.com/daily/add" % harvest_subdomain,
         data=payload, headers=headers)
     response = r.json()
-    print("Successfully logged %s hours for task %s in project %s" % (
-        response['hours'], response['task'], response['project']))
+    print("Successfully logged %s hours for task %s in project %s for account %s" % (
+        response['hours'], response['task'], response['project'], harvest_subdomain))
     # Update taskwarrior task
     task['harvestcomment'] = harvest_comment
     task['harvesttasktype'] = harvest_task_type_id

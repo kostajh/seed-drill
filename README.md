@@ -48,21 +48,32 @@ In this example, `harvest` is the name of the command (e.g. `task harvest 3`) bu
 
 #### Setup your credentials file
 
-Create a file at `~/.harvest.credentials.json`. Enter this text, and update the subdomain, email and password values:
+Create a file at `~/.harvest.credentials.yml`. Enter this text, and update the subdomain, email and password values:
 
 ```
-{
-    "email": "{email}",
-    "password": "{password}",
-    "subdomain": "{subdomain}"
-} 
+{subdomain}:
+  email: {email}
+  password: {password}
+```
+
+If you are using multiple accounts, just add another item to the array:
+
+```
+{subdomain}:
+  email: {email}
+  password: {password}
+{subdomain_two}:
+  email: {another_email}
+  password: {password_two}
 ```
 
 #### Defining your task types
 
 Replace `{subdomain}`, `{email}`, and `{password}` below:
 
-    $ curl https://{subdomain}.harvestapp.com/daily -H 'Accept: application/json' -H 'Content-Type: application/json' -u {email}:{password} -X GET > ~/.harvest.tasks.json
+    $ curl https://{subdomain}.harvestapp.com/daily -H 'Accept: application/json' -H 'Content-Type: application/json' -u {email}:{password} -X GET > ~/.harvest.{subdomain}.json
+
+Repeat for each subdomain you use to track times.
 
 Whenever you update your projects/task types in Harvest, you should re-run this command to get the latest data.
 
@@ -71,16 +82,12 @@ Whenever you update your projects/task types in Harvest, you should re-run this 
 In Taskwarrior, you probably track projects with project names like `example` and `misc` or hopefully something more interesting than that. You need to define a mapping of Taskwarrior project names to Harvest project IDs. For example:
 
 ```
-{
-    "example": {
-        "name": "Example project",
-        "id": "5990760"
-    },
-    "misc": {
-        "name": "Miscellany",
-        "id": "6300599"
-    }
-}
+example:
+  name: "Example project"
+  id: "5990760"
+misc:
+  name: "Miscellany"
+  id: "6300599"
 ```
 
-Save this content in `~/.harvest.projects.json`. Look in the previously created `~/.harvest.tasks.json` to find project IDs.
+Save this content in `~/.harvest.projects.yml`. Look in the previously created `~/.harvest.{subdomain}.json` to find project IDs. Make sure you use unique project keys across multiple accounts (e.g. don't have `misc` as a Taskwarrior project that maps to multiple Harvest subdomains).
