@@ -21,7 +21,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'seed = seed_drill:cmdline'
+            'sd = seed_drill:cmdline'
         ],
     },
 )
