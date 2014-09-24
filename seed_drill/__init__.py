@@ -125,20 +125,21 @@ def main():
     _, task = get_taskwarrior_task()
     print('Logging time for task "%s" in project "%s"' % (
         task['description'], task['project']))
-    try:
-        taskwarrior_timer = subprocess.check_output(
-            ['task %d inf | grep "Total active time"' % task['id']],
-            stderr=subprocess.STDOUT, shell=True)
-        print('Taskwarrior timer: %s' % taskwarrior_timer)
-    except subprocess.CalledProcessError as e:
-        print('No time stored in taskwarrior')
+    print('Taskwarrior timer: %s' % str(int(task['timetrackingseconds']) / 3600))
+    print('Actual time: %s' % task['actual'])
 
     # TODO: Prompt for input
     if (task['actual'] is None):
         print('You need to log an actual time for this task first')
         exit(1)
 
-    actual_time = (int(task['actual']) / 60) / 60
+    # Parse time
+    if ('m' in task['actual']):
+        # Convert to hours
+        actual_time = int(task['actual'][:task['actual'].index('m')]) / 60
+    elif ('h' in task['actual']):
+        actual_time = task['actual'][:task['actual'].index('h')]
+
     harvest_comment = get_harvest_comment(task)
     harvest_project_id, harvest_project_name = get_harvest_project(task)
     harvest_task_type_id, harvest_task_type_name, harvest_subdomain = get_harvest_task_type(
@@ -189,4 +190,9 @@ def main():
         w.task_done(uuid=task['uuid'])
         print('Task %d is complete!' % task['id'])
 
-main()
+
+def cmdline():
+    main()
+
+if __name__ == '__main__':
+    cmdline()
