@@ -1,7 +1,7 @@
 from __future__ import division
 from os.path import expanduser
-import subprocess
 from taskw import TaskWarrior
+import subprocess
 from base64 import b64encode
 import requests
 import json
@@ -178,11 +178,15 @@ def main():
     print("Successfully logged %s hours for task %s in project %s for account %s" % (
         response['hours'], response['task'], response['project'], harvest_subdomain))
     # Update taskwarrior task
-    task['harvestcomment'] = harvest_comment
-    task['harvesttasktype'] = harvest_task_type_id
-    task['harvestproject'] = harvest_project_id
-    task['logged'] = 'true'
-    w.task_update(task)
+    # task['harvestcomment'] = harvest_comment
+    # task['harvesttasktype'] = harvest_task_type_id
+    # task['harvestproject'] = harvest_project_id
+    # task['logged'] = 'true'
+    # w.task_update(task)
+    # TODO: task_update is broken, so make a bunch of calls to task._execute
+    p = subprocess.Popen(
+        ['task', str(task['uuid']), 'mod', 'logged:true'],
+        stdout=subprocess.PIPE)
     w.task_annotate(task, "Logged %s hours in Harvest" % response['hours'])
     # Prompt to complete task if it is pending.
     if (task['status'] == 'pending' and query_yes_no(
